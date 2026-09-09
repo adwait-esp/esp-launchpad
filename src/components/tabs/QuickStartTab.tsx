@@ -15,10 +15,13 @@ import {
   SheetHeader,
   SheetTitle,
   SimpleCard,
-  Badge
+  Badge,
+  Tabs,
+  TabsList,
+  TabsTrigger,
 } from "@espressif/dashboard-ui-components";
 import { ConnectionStatus, useEsp } from "../../esp/EspContext";
-import { Box, Cpu } from 'lucide-react'
+import { Box, Cpu, Zap } from 'lucide-react'
 import {
   getApp,
   loadLaunchpadConfig,
@@ -53,6 +56,15 @@ function findMatchingChipset(
   return chipsets.find((c) => normalizeChipName(c) === normalized);
 }
 
+type AppSolution = "rainmaker" | "matter";
+
+function getSelectedSolution(): AppSolution | "" {
+  const params = new URLSearchParams(window.location.search);
+  const solution = params.get("solution")?.toLowerCase();
+  if (solution === "rainmaker" || solution === "matter") return solution;
+  return params.has("flashConfigURL") ? "" : "rainmaker";
+}
+
 export function QuickStartTab({
   goToConsole,
   onFlashStatus,
@@ -79,6 +91,8 @@ export function QuickStartTab({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [flashError, setFlashError] = useState<string | null>(null);
   const [postFlashLinks, setPostFlashLinks] = useState<AppFlashLinks | null>(null);
+  const selectedSolution = getSelectedSolution();
+  const hasFlashConfigURL = new URLSearchParams(window.location.search).has("flashConfigURL");
 
   const app = useMemo(
     () => (config && selectedApp ? getApp(config, selectedApp) : undefined),
@@ -152,6 +166,22 @@ export function QuickStartTab({
       }
     }, [config, chipName]);
 
+  const handleSolutionChange = useCallback(
+    (solution: string) => {
+      if (
+        (solution !== "rainmaker" && solution !== "matter") ||
+        solution === selectedSolution
+      ) {
+        return;
+      }
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("solution", solution);
+      window.location.assign(url.toString());
+    },
+    [selectedSolution],
+  );
+
   const resolveFlashFile = useCallback((): string | undefined => {
     if (!app) return undefined;
     if (devKits && devKits.length > 0) {
@@ -211,6 +241,16 @@ export function QuickStartTab({
           </Alert>
         )}
       </h5>
+      {!hasFlashConfigURL && (
+        <nav aria-label="Application solution">
+          <Tabs value={selectedSolution} onValueChange={handleSolutionChange}>
+            <TabsList variant="line">
+              <TabsTrigger value="rainmaker">RainMaker Apps</TabsTrigger>
+              <TabsTrigger value="matter">Matter Apps</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </nav>
+      )}
       <Separator />
       {missingApp && (
         <Alert type="warning" title="Application not found">
@@ -318,7 +358,7 @@ export function QuickStartTab({
 
         <div className="flex items-center gap-4">
           <Button color="secondary" disabled={!deviceReady || busy || !selectedChipset} onClick={() => void onFlash()}>
-            Flash
+            <Zap className="h-5 w-5" aria-hidden /> Flash
           </Button>
           
         </div>

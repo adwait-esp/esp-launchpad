@@ -12,7 +12,7 @@ import { SettingsTab } from "./components/tabs/SettingsTab";
 import { AboutTab } from "./components/tabs/AboutTab";
 import { FlashStatusDialog, type AppFlashLinks } from "./components/modals/FlashStatusDialog";
 import type { TabId } from "./types";
-import { Cpu } from "lucide-react";
+import { Cpu, Plug } from "lucide-react";
 
 function TabPanel({ active, children }: { active: boolean; children: React.ReactNode }) {
   return <div className={active ? "fade-in-down" : "hidden"}>{children}</div>;
@@ -66,7 +66,7 @@ function Launchpad() {
             title={"ESP Launchpad"}
             description={"Helps you flash the selected firmware image onto your device. Ensure your device is connected to the serial USB port."} 
             color="secondary" size="lg" variant="solid" 
-            actions={<Button color="disabled" fullWidth={false} variant="default" onClick={() => void connect()}>Connect</Button>} />
+            actions={<Button color="disabled" fullWidth={false} variant="default" onClick={() => void connect()}> <Plug className="h-5 w-5" aria-hidden /> Connect</Button>} />
           </div>
         )}
 

@@ -2,9 +2,7 @@ import { useEsp } from "../esp/EspContext";
 import type { TabId } from "../types";
 import type { LucideIcon } from "lucide-react";
 import logo from "../../assets/logo-v1.png";
-import connectIcon from "../../assets/icons/connect.png";
-import disconnectIcon from "../../assets/icons/disconnect.png";
-import { House, Info, Settings, SquareChevronRight, Timer, ToolCase } from "lucide-react";
+import { House, Info, Plug, Unplug, Settings, SquareChevronRight, Timer, ToolCase } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@espressif/dashboard-ui-components";
 
 
@@ -53,12 +51,12 @@ export function Navbar({
           ))}
       {deviceReady ? (
           <TabsTrigger onClick={() => void disconnect()} value="disconnect">
-            <img src={disconnectIcon} alt="" className="h-4 w-4" aria-hidden />
+            <Unplug className="h-4 w-4" aria-hidden />
             Disconnect
           </TabsTrigger>
         ) : (
           <TabsTrigger  onClick={() => void connect()} value="connect">
-            <img src={connectIcon} alt="" className="h-4 w-4" aria-hidden />
+           <Plug className="h-4 w-4" aria-hidden />
             Connect
           </TabsTrigger>
         )}

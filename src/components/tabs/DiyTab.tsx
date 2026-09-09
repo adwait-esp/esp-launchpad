@@ -6,8 +6,7 @@ import {
 } from '@espressif/dashboard-ui-components'
 import { useEsp } from "../../esp/EspContext";
 import { readFileAsBytes } from "../../lib/serial";
-import removeIcon from "../../../assets/icons/remove.png";
-import { Cpu } from "lucide-react";
+import { Cpu, FileXCorner, FilePlusCorner, Zap, ZapOff } from "lucide-react";
 
 interface Row {
   id: number;
@@ -88,7 +87,7 @@ export function DiyTab({ goToConsole }: { goToConsole: () => void }) {
             onConfirm={() => void onErase()}
             onCancel={() => undefined}
           >
-            <Button variant="default" color="error">Erase Flash</Button>
+            <Button variant="default" color="error"><ZapOff className="h-5 w-5" aria-hidden /> Erase Flash</Button>
           </ConfirmationDialog>
           }
          allowCollapse={false}
@@ -146,7 +145,7 @@ export function DiyTab({ goToConsole }: { goToConsole: () => void }) {
                   className="w-auto"
                   onClick={() => removeRow(row.id)}
                 >
-                  <img src={removeIcon} alt="" className="h-4 w-4" />
+                  <FileXCorner className="h-5 w-5" aria-hidden />
                 </Button>
               )}
             </TableCell>
@@ -159,10 +158,10 @@ export function DiyTab({ goToConsole }: { goToConsole: () => void }) {
 
       <div className="flex justify-end gap-2 w-90">
         <Button variant="outline" size="sm" onClick={addRow}>
-          Add File
+          <FilePlusCorner className="h-5 w-5" aria-hidden /> Add File
         </Button>
         <Button variant="outline" size="sm" disabled={!deviceReady || busy} onClick={() => void onProgram()}>
-          Program
+          <Zap className="h-5 w-5" aria-hidden /> Program
         </Button>
       </div>
     </div>

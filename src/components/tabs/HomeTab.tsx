@@ -5,24 +5,23 @@ import { Button, SimpleClickableCard } from "@espressif/dashboard-ui-components"
 import { appConfig } from "../../app-config";
 import type { TabId } from "../../types";
 import type { LucideIcon } from "lucide-react";
-import { Timer, SquareChevronRight } from "lucide-react";
+import { Info, Plug, Timer, ToolCase } from "lucide-react";
 
 const FEATURES: { id: TabId; icon: LucideIcon; title: string; description: string; cta: string }[] = [
   {
     id: "quickstart",
     icon: Timer,
-    title: "Quick Start",
-    description:
-      "Four easy steps — Plug, Connect, Choose a built-in firmware image, Flash! Ideal for getting started quickly with Espressif hardware.",
+    title: "QUICK START",
+    description: "Plug, Connect, Choose Image, Flash! Ideal for getting started quickly with Espressif hardware with our Rainmaker and Matter firmware examples.",
     cta: "Get Started",
   },
   {
-    id: "console",
-    icon: SquareChevronRight,
-    title: "Console",
+    id: "diy",
+    icon: ToolCase,
+    title: "DIY",
     description:
-      "For users to connect their ESP dev kits to the console and interact with them.",
-    cta: "Console",
+      "For Advanved users to connect their ESP dev kits and flash their own firmware.",
+    cta: "DIY",
   },
 ];
 
@@ -58,10 +57,10 @@ export function HomeTab({ onTabChange }: { onTabChange: (tab: TabId) => void }) 
 
         <div className="flex gap-3">
           <Button size="sm"  onClick={() => void connect()} color="secondary">
-            Connect
+            <Plug className="h-5 w-5" aria-hidden /> Connect
           </Button>
           <Button size="sm" variant="outline" onClick={() => onTabChange("about")} color="secondary">
-            Learn More
+            <Info className="h-5 w-5" aria-hidden /> Learn More
           </Button>
         </div>
       </div>
