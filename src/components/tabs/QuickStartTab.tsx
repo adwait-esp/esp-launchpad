@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -91,6 +91,7 @@ export function QuickStartTab({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [flashError, setFlashError] = useState<string | null>(null);
   const [postFlashLinks, setPostFlashLinks] = useState<AppFlashLinks | null>(null);
+  const configRequestRef = useRef(0);
   const selectedSolution = getSelectedSolution();
   const hasFlashConfigURL = new URLSearchParams(window.location.search).has("flashConfigURL");
 
@@ -104,30 +105,40 @@ export function QuickStartTab({
     [app, selectedChipset],
   );
 
+  const loadConfig = useCallback(async (search: string) => {
+    const requestId = ++configRequestRef.current;
+    setLoadError(null);
+    setConfig(null);
+    setConfigReadmeHtml("");
+
+    try {
+      const result = await loadLaunchpadConfig(search);
+      if (requestId !== configRequestRef.current) return;
+
+      setConfig(result.config);
+      setIsDefault(result.isDefault);
+      setTomlFileURL(result.tomlFileURL);
+      setMissingApp(result.missingApp);
+      setSelectedApp(result.config.supported_apps?.[0] ?? "");
+
+      if (result.config.config_readme_url) {
+        const html = await fetchMarkdownAsHtml(result.config.config_readme_url);
+        if (requestId === configRequestRef.current) setConfigReadmeHtml(html);
+      }
+    } catch (err) {
+      if (requestId === configRequestRef.current) {
+        setLoadError((err as Error).message);
+      }
+    }
+  }, []);
+
   // ── Initial config load ────────────────────────────────────────
   useEffect(() => {
-    let cancelled = false;
-    loadLaunchpadConfig()
-      .then((result) => {
-        if (cancelled) return;
-        setConfig(result.config);
-        setIsDefault(result.isDefault);
-        setTomlFileURL(result.tomlFileURL);
-        setMissingApp(result.missingApp);
-        setSelectedApp(result.config.supported_apps?.[0] ?? "");
-        if (result.config.config_readme_url) {
-          void fetchMarkdownAsHtml(result.config.config_readme_url).then((html) => {
-            if (!cancelled) setConfigReadmeHtml(html);
-          });
-        }
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setLoadError(err.message);
-      });
+    void loadConfig(window.location.search);
     return () => {
-      cancelled = true;
+      configRequestRef.current += 1;
     };
-  }, []);
+  }, [loadConfig]);
 
   // ── Derive per-app state when the selected app changes ──────────
   useEffect(() => {
@@ -177,9 +188,14 @@ export function QuickStartTab({
 
       const url = new URL(window.location.href);
       url.searchParams.set("solution", solution);
-      window.location.assign(url.toString());
+      url.searchParams.delete("flashConfigURL");
+      url.searchParams.delete("crossDomain");
+      url.searchParams.delete("app");
+      url.searchParams.delete("exact");
+      window.history.pushState({}, "", url.toString());
+      void loadConfig(url.search);
     },
-    [selectedSolution],
+    [loadConfig, selectedSolution],
   );
 
   const resolveFlashFile = useCallback((): string | undefined => {
