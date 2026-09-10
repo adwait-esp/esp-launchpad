@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -15,10 +15,13 @@ import {
   SheetHeader,
   SheetTitle,
   SimpleCard,
-  Badge
+  Badge,
+  Tabs,
+  TabsList,
+  TabsTrigger,
 } from "@espressif/dashboard-ui-components";
 import { ConnectionStatus, useEsp } from "../../esp/EspContext";
-import { Box, Cpu } from 'lucide-react'
+import { Box, Cpu, Zap } from 'lucide-react'
 import {
   getApp,
   loadLaunchpadConfig,
@@ -53,6 +56,15 @@ function findMatchingChipset(
   return chipsets.find((c) => normalizeChipName(c) === normalized);
 }
 
+type AppSolution = "rainmaker" | "matter";
+
+function getSelectedSolution(): AppSolution | "" {
+  const params = new URLSearchParams(window.location.search);
+  const solution = params.get("solution")?.toLowerCase();
+  if (solution === "rainmaker" || solution === "matter") return solution;
+  return params.has("flashConfigURL") ? "" : "rainmaker";
+}
+
 export function QuickStartTab({
   goToConsole,
   onFlashStatus,
@@ -79,6 +91,9 @@ export function QuickStartTab({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [flashError, setFlashError] = useState<string | null>(null);
   const [postFlashLinks, setPostFlashLinks] = useState<AppFlashLinks | null>(null);
+  const configRequestRef = useRef(0);
+  const selectedSolution = getSelectedSolution();
+  const hasFlashConfigURL = new URLSearchParams(window.location.search).has("flashConfigURL");
 
   const app = useMemo(
     () => (config && selectedApp ? getApp(config, selectedApp) : undefined),
@@ -90,30 +105,40 @@ export function QuickStartTab({
     [app, selectedChipset],
   );
 
+  const loadConfig = useCallback(async (search: string) => {
+    const requestId = ++configRequestRef.current;
+    setLoadError(null);
+    setConfig(null);
+    setConfigReadmeHtml("");
+
+    try {
+      const result = await loadLaunchpadConfig(search);
+      if (requestId !== configRequestRef.current) return;
+
+      setConfig(result.config);
+      setIsDefault(result.isDefault);
+      setTomlFileURL(result.tomlFileURL);
+      setMissingApp(result.missingApp);
+      setSelectedApp(result.config.supported_apps?.[0] ?? "");
+
+      if (result.config.config_readme_url) {
+        const html = await fetchMarkdownAsHtml(result.config.config_readme_url);
+        if (requestId === configRequestRef.current) setConfigReadmeHtml(html);
+      }
+    } catch (err) {
+      if (requestId === configRequestRef.current) {
+        setLoadError((err as Error).message);
+      }
+    }
+  }, []);
+
   // ── Initial config load ────────────────────────────────────────
   useEffect(() => {
-    let cancelled = false;
-    loadLaunchpadConfig()
-      .then((result) => {
-        if (cancelled) return;
-        setConfig(result.config);
-        setIsDefault(result.isDefault);
-        setTomlFileURL(result.tomlFileURL);
-        setMissingApp(result.missingApp);
-        setSelectedApp(result.config.supported_apps?.[0] ?? "");
-        if (result.config.config_readme_url) {
-          void fetchMarkdownAsHtml(result.config.config_readme_url).then((html) => {
-            if (!cancelled) setConfigReadmeHtml(html);
-          });
-        }
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setLoadError(err.message);
-      });
+    void loadConfig(window.location.search);
     return () => {
-      cancelled = true;
+      configRequestRef.current += 1;
     };
-  }, []);
+  }, [loadConfig]);
 
   // ── Derive per-app state when the selected app changes ──────────
   useEffect(() => {
@@ -151,6 +176,27 @@ export function QuickStartTab({
         setSelectedChipset(findMatchingChipset(appConfig?.chipsets, chipName) ?? "");
       }
     }, [config, chipName]);
+
+  const handleSolutionChange = useCallback(
+    (solution: string) => {
+      if (
+        (solution !== "rainmaker" && solution !== "matter") ||
+        solution === selectedSolution
+      ) {
+        return;
+      }
+
+      const url = new URL(window.location.href);
+      url.searchParams.set("solution", solution);
+      url.searchParams.delete("flashConfigURL");
+      url.searchParams.delete("crossDomain");
+      url.searchParams.delete("app");
+      url.searchParams.delete("exact");
+      window.history.pushState({}, "", url.toString());
+      void loadConfig(url.search);
+    },
+    [loadConfig, selectedSolution],
+  );
 
   const resolveFlashFile = useCallback((): string | undefined => {
     if (!app) return undefined;
@@ -211,6 +257,16 @@ export function QuickStartTab({
           </Alert>
         )}
       </h5>
+      {!hasFlashConfigURL && (
+        <nav aria-label="Application solution">
+          <Tabs value={selectedSolution} onValueChange={handleSolutionChange}>
+            <TabsList variant="line">
+              <TabsTrigger value="rainmaker">RainMaker Apps</TabsTrigger>
+              <TabsTrigger value="matter">Matter Apps</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </nav>
+      )}
       <Separator />
       {missingApp && (
         <Alert type="warning" title="Application not found">
@@ -318,7 +374,7 @@ export function QuickStartTab({
 
         <div className="flex items-center gap-4">
           <Button color="secondary" disabled={!deviceReady || busy || !selectedChipset} onClick={() => void onFlash()}>
-            Flash
+            <Zap className="h-5 w-5" aria-hidden /> Flash
           </Button>
           
         </div>

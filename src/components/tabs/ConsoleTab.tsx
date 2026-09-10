@@ -4,7 +4,7 @@ import { useEsp } from "../../esp/EspContext";
 import { TerminalView } from "../TerminalView";
 import { ResetDialog } from "../modals/ResetDialog";
 import { getCommandTextFromInput, isApplePlatform } from "../../lib/serial";
-import { Cpu } from "lucide-react";
+import { Cpu, RotateCcw } from "lucide-react";
 
 
 function CliHints() {
@@ -128,7 +128,7 @@ export function ConsoleTab() {
             disabled={!deviceReady || busy}
             onClick={() => setResetOpen(true)}
           >
-          Reset Device
+          <RotateCcw className="h-5 w-5" aria-hidden /> Reset Device
           </Button>}
          allowCollapse={false}
          defaultOpen={true}
