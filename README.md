@@ -1,3 +1,51 @@
+# ESP Launchpad
+
+## Prerequisites
+
+- Node.js 20.19 or newer
+- npm
+- A browser with Web Serial support, such as Google Chrome or Microsoft Edge
+
+## Install
+
+Clone the repository and install the dependencies:
+
+```bash
+git clone https://github.com/espressif/esp-launchpad.git
+cd esp-launchpad
+npm ci
+```
+
+## Run locally
+
+Start the Vite development server:
+
+```bash
+npm run dev
+```
+
+Open the URL printed by Vite, usually [http://localhost:5173](http://localhost:5173).
+Localhost is treated as a secure context, which allows supported browsers to use the
+Web Serial API.
+
+## Build
+
+Create a production build:
+
+```bash
+npm run build
+```
+
+The generated files are written to the `dist` directory.
+
+To preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## Usage
+
 ESP Launchpad is a web based tool, available for flashing firmware application to the ESP32 device connected via USB serial port.
 
 There are two modes available for using this tool:

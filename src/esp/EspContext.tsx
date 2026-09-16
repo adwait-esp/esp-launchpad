@@ -107,6 +107,7 @@ export function EspProvider({ children }: { children: ReactNode }) {
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const writerRef = useRef<WritableStreamDefaultWriter<Uint8Array> | undefined>(undefined);
+  const consoleReaderRef = useRef<ReadableStreamDefaultReader<Uint8Array> | undefined>(undefined);
   const connectedRef = useRef(false);
   const consoleBaudOverrideRef = useRef<number | undefined>(undefined);
   const flashModeRef = useRef<FlashMode>(null);
@@ -128,6 +129,55 @@ export function EspProvider({ children }: { children: ReactNode }) {
 
   const fitTerminal = useCallback(() => {
     fitRef.current?.fit();
+  }, []);
+
+  const startConsoleRead = useCallback(
+    async (device: SerialPort, term: Terminal, isActive: () => boolean) => {
+      const readable = device.readable;
+      if (!readable) return;
+
+      const reader = readable.getReader();
+      consoleReaderRef.current = reader;
+
+      try {
+        while (isActive() && consoleReaderRef.current === reader) {
+          const { value, done } = await reader.read();
+          if (done || !value) break;
+          term.write(value);
+        }
+      } catch (error) {
+        if (consoleReaderRef.current === reader) {
+          term.writeln(`Error: ${(error as Error).message}`);
+        }
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {
+          /* the reader may already have been released by stopConsoleRead */
+        }
+        if (consoleReaderRef.current === reader) {
+          consoleReaderRef.current = undefined;
+        }
+      }
+    },
+    [],
+  );
+
+  const stopConsoleRead = useCallback(async () => {
+    const reader = consoleReaderRef.current;
+    if (!reader) return;
+
+    consoleReaderRef.current = undefined;
+    try {
+      await reader.cancel();
+    } catch (error) {
+      console.error(`[esp-launchpad] stopConsoleRead: cancel failed: ${(error as Error).message}`);
+    }
+    try {
+      reader.releaseLock();
+    } catch {
+      /* the read loop may already have released it */
+    }
   }, []);
 
   const espLoaderTerminal = useMemo(
@@ -179,6 +229,7 @@ export function EspProvider({ children }: { children: ReactNode }) {
     transportRef.current = undefined;
     esploaderRef.current = undefined;
     writerRef.current = undefined;
+    consoleReaderRef.current = undefined;
     flashModeRef.current = null;
     setChipName("default");
     setChipDesc("default");
@@ -188,6 +239,7 @@ export function EspProvider({ children }: { children: ReactNode }) {
     connectedRef.current = false;
     setConnected(false);
     setCliEnabled(false);
+    await stopConsoleRead();
     try {
       if (transportRef.current) await transportRef.current.disconnect();
     } catch {
@@ -195,7 +247,7 @@ export function EspProvider({ children }: { children: ReactNode }) {
     }
     termRef.current?.clear();
     cleanUp();
-  }, [cleanUp]);
+  }, [cleanUp, stopConsoleRead]);
 
   const eraseFlash = useCallback(async () => {
     if (!esploaderRef.current) return;
@@ -268,6 +320,7 @@ export function EspProvider({ children }: { children: ReactNode }) {
     if (!t) return;
 
     setBusy(true);
+    await stopConsoleRead();
     try {
       await t.disconnect();
     } catch {
@@ -282,12 +335,12 @@ export function EspProvider({ children }: { children: ReactNode }) {
     await new Promise((resolve) => setTimeout(resolve, 100));
     await t.setDTR(true);
 
-    const decoder = new TextDecoder();
-    await t.rawRead(
-      (data) => termRef.current?.write(decoder.decode(data, { stream: true })),
-      () => !connectedRef.current,
-    );
-  }, [ensureDevice, getConsoleBaudrateForReconnect]);
+    const device = deviceRef.current;
+    const term = termRef.current;
+    if (device && term) {
+      await startConsoleRead(device, term, () => connectedRef.current);
+    }
+  }, [ensureDevice, getConsoleBaudrateForReconnect, startConsoleRead, stopConsoleRead]);
 
   const sendCommand = useCallback(async (text: string) => {
     const device = deviceRef.current;
