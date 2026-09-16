@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { resolve } from "node:path";
 
 // Dedupe React so hooks/context work when the UI library is pre-bundled.
 export default defineConfig({
@@ -17,5 +18,13 @@ export default defineConfig({
       "use-sync-external-store/shim",
       "react-hook-form",
     ],
+  },
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(import.meta.dirname, "index.html"),
+        minimalLaunchpad: resolve(import.meta.dirname, "minimal-launchpad/index.html"),
+      },
+    },
   },
 });

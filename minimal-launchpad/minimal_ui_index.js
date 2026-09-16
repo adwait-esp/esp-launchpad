@@ -1,3 +1,12 @@
+import { Terminal } from "xterm";
+import { FitAddon } from "xterm-addon-fit";
+import "../js/jquery.min.js";
+import "../js/bootstrap.bundle.min.js";
+import "../js/qrcode.min.js";
+import * as utilities from "../js/utils.js"
+import * as esptooljs from "../node_modules/esptool-js/bundle.js";
+import * as toml from '../node_modules/smol-toml/dist/index.js';
+
 const connectButton = document.getElementById("connectButton");
 const consoleStartButton = document.getElementById("consoleStartButton");
 const terminal = document.getElementById("terminal");
@@ -31,17 +40,13 @@ const commandHistory = [];
 let historyIndex = -1;
 let tomlFileURL = undefined;
 
-import * as utilities from "../js/utils.js"
-import * as esptooljs from "../node_modules/esptool-js/bundle.js";
-import * as toml from '../node_modules/smol-toml/dist/index.js';
-
 const ESPLoader = esptooljs.ESPLoader;
 const Transport = esptooljs.Transport;
 
 utilities.assertWebSerialSupported();
 
 let term = new Terminal({ cols: utilities.getTerminalColumns(), rows: 23, fontSize: 14, scrollback: 9999999 });
-let fitAddon = new FitAddon.FitAddon();
+let fitAddon = new FitAddon();
 term.loadAddon(fitAddon);
 term.open(terminal);
 fitAddon.fit();
@@ -271,7 +276,7 @@ async function buildMinimalLaunchpadUI() {
     }
 }
 
-await buildMinimalLaunchpadUI();
+void buildMinimalLaunchpadUI();
 
 $(function () {
     utilities.initializeTooltips();
